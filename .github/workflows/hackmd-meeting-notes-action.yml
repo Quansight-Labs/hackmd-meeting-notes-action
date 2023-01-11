@@ -91,7 +91,7 @@ jobs:
           if [[ "${{ inputs.iso_date }}" != "" ]]; then
             echo "iso_date=$(date -I -u --date ${{ inputs.iso_date }})" >> $GITHUB_ENV
           else
-            echo "iso_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
+            echo "iso_date=$(date -I -u)" >> $GITHUB_ENV
           fi
       - name: Render template
         run: |
