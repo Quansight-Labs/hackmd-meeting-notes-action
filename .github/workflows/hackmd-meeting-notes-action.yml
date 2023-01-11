@@ -65,7 +65,7 @@ on:
         default: false
         type: boolean
     secrets:
-      GITHUB_TOKEN:
+      GITHUB_USER_TOKEN:
         description: A token with sufficient permissions to commit and push to the target repository
         required: false
       HACKMD_TOKEN:
