@@ -4,7 +4,7 @@ on:
 
 jobs:
   run:
-    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/reusable-workflow.yml@main
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/reusable-workflow.yml@first-draft
     with:
       template_path: meeting-notes/TEMPLATE.md
       output_path: meeting-notes/%Y-%m-%d.md
