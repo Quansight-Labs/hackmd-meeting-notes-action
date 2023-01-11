@@ -126,11 +126,6 @@ jobs:
           git commit -m "Add $output_path"
 
           echo "branch_name=$branch_name" >> $GITHUB_ENV
-      - name: Push
-        if: ${{ !inputs.dry_run }}
-        run: |
-          git config push.default upstream
-          git push --set-upstream origin "${branch_name}"
       - name: Sync with HackMD
         if: ${{ !inputs.dry_run }}
         env:
@@ -139,6 +134,7 @@ jobs:
           note_title="$(awk '/^# .*/{print substr($0,3); exit}' "$output_path")"
           python3 <<EOF
           import os
+          from pathlib import Path
           import requests
           url = "https://api.hackmd.io/v1/teams/${{ inputs.hackmd_team }}/notes"
           headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
@@ -155,6 +151,11 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as f:
             print(f"hackmd_doc_url=data['publishLink']", file=f)
           EOF
+      - name: Push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config push.default upstream
+          git push --set-upstream origin "${branch_name}"
       - name: Prepare PR
         run: |
           echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
