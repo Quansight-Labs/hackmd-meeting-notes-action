@@ -82,7 +82,7 @@ jobs:
       - run: python -m pip install jinja2 requests
       - name: Prepare date
         run: |
-          if [[ ${{ inputs.iso_date }} != "" ]]; then
+          if [[ "${{ inputs.iso_date }}" != "" ]]; then
             echo "iso_date=${{ inputs.iso_date }}" >> $GITHUB_ENV
           else
             echo "iso_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
