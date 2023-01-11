@@ -148,7 +148,6 @@ jobs:
             "readPermission": "guest",
             "writePermission": "sign_in",
             "commentPermission": "signed_in_users",
-            "permalink":
           }
           r = requests.post(url, data)
           r.raise_for_status()
