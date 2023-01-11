@@ -98,7 +98,7 @@ jobs:
         run: |
           # Change to branch, create if it doesn't exist
           branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
-          git checkout "${branch_name}" || git -b checkout "${branch_name}"
+          git checkout "${branch_name}" || git checkout -b "${branch_name}"
           git pull origin "${branch_name}" || true  # might not exist upstream yet
       - name: Render template
         run: |
