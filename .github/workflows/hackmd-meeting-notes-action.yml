@@ -61,6 +61,11 @@ on:
         required: false
         type: string
         default: ""
+      force_push:
+        description: Whether to `git push -f` if the target branch already exists
+        required: false
+        default: false
+        type: boolean
       dry_run:
         description: If true, do not actually push
         required: false
@@ -99,7 +104,6 @@ jobs:
           # Change to branch, create if it doesn't exist
           branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
           git checkout "${branch_name}" || git checkout -b "${branch_name}"
-          git pull origin "${branch_name}" || true  # might not exist upstream yet
           echo "branch_name=$branch_name" >> $GITHUB_ENV
       - name: Render template
         run: |
@@ -157,11 +161,15 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as f:
             print(f"hackmd_doc_url=data['publishLink']", file=f)
           EOF
-      - name: Push
+      - name: (Force) Push
         if: ${{ !inputs.dry_run }}
         run: |
           git config push.default upstream
-          git push --set-upstream origin "${branch_name}"
+          if [[ ${{ inputs.force_push }} == "true" ]]; then
+            git push -f origin "${branch_name}"
+          else
+            git push origin "${branch_name}"
+          fi
       - name: Prepare PR
         run: |
           echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV

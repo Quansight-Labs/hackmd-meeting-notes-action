@@ -13,5 +13,6 @@ jobs:
       template_path: meeting-notes/TEMPLATE.md
       output_path: meeting-notes/%Y-%m-%d.md
       hackmd_team: jaimergp-team-demo
+      force_push: true
     secrets:
       HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
