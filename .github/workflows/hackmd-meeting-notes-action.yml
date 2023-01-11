@@ -100,6 +100,7 @@ jobs:
           branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
           git checkout "${branch_name}" || git checkout -b "${branch_name}"
           git pull origin "${branch_name}" || true  # might not exist upstream yet
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
       - name: Render template
         run: |
           # Render template
@@ -130,8 +131,6 @@ jobs:
 
           git add "$output_path"
           git commit -m "Add $output_path"
-
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
       - name: Sync with HackMD
         if: ${{ !inputs.dry_run }}
         env:
