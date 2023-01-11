@@ -1,0 +1,19 @@
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+# You need to enable 'Allow GitHub Actions to create and approve pull requests'
+# in your Actions Settings too
+
+jobs:
+  run:
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/hackmd-meeting-notes-action.yml@first-draft
+    with:
+      template_path: meeting-notes/TEMPLATE.md
+      output_path: meeting-notes/%Y-%m-%d.md
+      hackmd_team: jaimergp-team-demo
+      force_push: true
+    secrets:
+      HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}

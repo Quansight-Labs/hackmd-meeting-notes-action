@@ -1,0 +1,198 @@
+name: HackMD Meeting Notes Action
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_call:
+    inputs:
+      template_path:
+        description: >-
+          Path (relative to the repository root) to the HackMD template. Supports Jinja.
+          Environment variables available in the `env` dict.
+          Date available in the `date` datetime object.
+          It MUST contain a one-line `# H1 header`.
+        required: true
+        type: string
+      output_path:
+        description: Output path for the rendered template. Accepts `date` command syntax.
+        required: true
+        type: string
+      branch_name:
+        description: >-
+          Name for the branch that will be created with the new document.
+          Also used for the HackMD permalink.
+          Accepts `date` command syntax.
+        required: false
+        default: "%Y-%m-%d-meeting-notes"
+        type: string
+      hackmd_team:
+        description: HackMD team identifier
+        required: true
+        type: string
+      pr_title:
+        description: Title to be used in the submitted PR. Accepts `date` command syntax.
+        required: false
+        default: "Add meeting notes %Y-%m-%d"
+        type: string
+      pr_body:
+        description: >-
+          Body to be used in the submitted PR.
+          Environment variables available in `${env.XXXX}`.
+          Other options for interpolated strings `${...}` at https://github.com/actions/github-script
+        required: false
+        type: string
+        default: |
+          New meeting notes available at ${env.hackmd_doc_url}
+
+          Once done with the meeting, sync the note back to the repository:
+          1. Open the Versions panel
+          2. Press **Push to Github**
+          3. Select repo: _${context.repo.owner}/${context.repo.repo}_
+          4. Select branch: _${env.branch_name}_
+          5. Select file: _${env.output_path}_
+          &. Press **Push**!
+      iso_date:
+        description: >-
+          Date to use for `date` syntax interpolation in strings. Defaults to date when running.
+          MUST be understood by `date --date`, but probably better to stick a known standard
+          (e.g. use ISO8601 format in UTC `2023-01-11T09:00:00Z`).
+        required: false
+        type: string
+        default: ""
+      force_push:
+        description: Whether to `git push -f` if the target branch already exists
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: If true, do not actually push
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      GITHUB_USER_TOKEN:
+        description: A token with sufficient permissions to commit and push to the target repository
+        required: false
+      HACKMD_TOKEN:
+        description: API token for HackMD.io
+        required: true
+
+jobs:
+  main:
+    name: Main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      - name: Set up dependencies
+        run: |
+          python3 -V
+          python3 -m pip install jinja2 requests
+      - name: Prepare date
+        run: |
+          if [[ "${{ inputs.iso_date }}" != "" ]]; then
+            echo "iso_date=$(date -I -u --date ${{ inputs.iso_date }})" >> $GITHUB_ENV
+          else
+            echo "iso_date=$(date -I -u)" >> $GITHUB_ENV
+          fi
+      - name: Prepare branch
+        run: |
+          # Change to branch, create if it doesn't exist
+          branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
+          git checkout "${branch_name}" || git checkout -b "${branch_name}"
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
+      - name: Render template
+        run: |
+          # Render template
+          output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
+          export output_path
+          mkdir -p "$(dirname "$output_path")"
+          python3 > "$output_path" <<EOF
+          from jinja2 import Template, DebugUndefined
+          import sys
+          import os
+          from datetime import datetime
+          from pathlib import Path
+          template = Template(Path("${{ inputs.template_path }}").read_text(), undefined=DebugUndefined)
+          print(
+            template.render(
+              env=os.environ,
+              date=datetime.fromisoformat(os.environ["iso_date"]),
+            )
+          )
+          EOF
+          echo "output_path=$output_path" >> $GITHUB_ENV
+          note_title="$(awk '/^# .*/{print substr($0,3); exit}' "$output_path")"
+          echo "note_title=$note_title" >> $GITHUB_ENV
+      - name: Commit changes
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          git add "$output_path"
+          git commit -m "Add $output_path"
+      - name: Sync with HackMD
+        if: ${{ !inputs.dry_run }}
+        env:
+          HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+        run: |
+          python3 <<EOF
+          import os
+          from pathlib import Path
+          import requests
+          url = "https://api.hackmd.io/v1/teams/${{ inputs.hackmd_team }}/notes"
+          headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
+          data = {
+            "title": os.environ["note_title"],
+            "content": Path(os.environ["output_path"]).read_text(errors="replace"),
+            "readPermission": "guest",
+            "writePermission": "signed_in",
+          }
+          r = requests.post(url, json=data, headers=headers)
+          if not r.ok:
+            print(r.content)
+            r.raise_for_status()
+          data = r.json()
+          print(data)
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+            print(f"hackmd_doc_url={data['publishLink']}", file=f)
+          EOF
+      - name: (Force) Push
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config push.default upstream
+          if [[ ${{ inputs.force_push }} == "true" ]]; then
+            git push -f origin "${branch_name}"
+          else
+            git push origin "${branch_name}"
+          fi
+      - name: Prepare PR
+        run: |
+          echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
+      - name: Create PR
+        if: ${{ !inputs.dry_run }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let env = process.env
+            await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: env.branch_name,
+              base: "main",
+              title: env.pr_title,
+              body: `${{ inputs.pr_body }}`
+            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          template_path: ${{ inputs.template_path }}
+          output_path: ${{ env.output_path }}
+          branch_name: ${{ env.branch_name }}
+          hackmd_doc_url: ${{ env.hackmd_doc_url }}
+          hackmd_team: ${{ inputs.hackmd_team }}
+          pr_title: ${{ env.pr_title }}
+
