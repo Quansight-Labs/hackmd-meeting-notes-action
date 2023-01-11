@@ -48,19 +48,19 @@ on:
 
           Once done with the meeting, sync the note back to the repository:
           1. Open the Versions panel
-          2. Press **Push to Github**
+          2. Press **Push to Github**. You might need to grant access to the HackMD app.
           3. Select repo: _${context.repo.owner}/${context.repo.repo}_
           4. Select branch: _${env.branch_name}_
           5. Select file: _${env.output_path}_
-          &. Press **Push**!
-      iso_date:
+          6. Press **Push**!
+      date:
         description: >-
           Date to use for `date` syntax interpolation in strings. Defaults to date when running.
           MUST be understood by `date --date`, but probably better to stick a known standard
           (e.g. use ISO8601 format in UTC `2023-01-11T09:00:00Z`).
         required: false
         type: string
-        default: ""
+        default: "now"
       force_push:
         description: Whether to `git push -f` if the target branch already exists
         required: false
@@ -94,21 +94,17 @@ jobs:
           python3 -m pip install jinja2 requests
       - name: Prepare date
         run: |
-          if [[ "${{ inputs.iso_date }}" != "" ]]; then
-            echo "iso_date=$(date -I -u --date ${{ inputs.iso_date }})" >> $GITHUB_ENV
-          else
-            echo "iso_date=$(date -I -u)" >> $GITHUB_ENV
-          fi
+          echo "chosen_date=$(date -I -u --date ${{ inputs.date }})" >> $GITHUB_ENV
       - name: Prepare branch
         run: |
           # Change to branch, create if it doesn't exist
-          branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
+          branch_name=$(date --date "$chosen_date" "+${{ inputs.branch_name }}")
           git checkout "${branch_name}" || git checkout -b "${branch_name}"
           echo "branch_name=$branch_name" >> $GITHUB_ENV
       - name: Render template
         run: |
           # Render template
-          output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
+          output_path=$(date --date "$chosen_date" "+${{ inputs.output_path }}")
           export output_path
           mkdir -p "$(dirname "$output_path")"
           python3 > "$output_path" <<EOF
@@ -121,7 +117,7 @@ jobs:
           print(
             template.render(
               env=os.environ,
-              date=datetime.fromisoformat(os.environ["iso_date"]),
+              date=datetime.fromisoformat(os.environ["chosen_date"]),
             )
           )
           EOF
@@ -172,7 +168,7 @@ jobs:
           fi
       - name: Prepare PR
         run: |
-          echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
+          echo "pr_title=$(date --date "$chosen_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
       - name: Create PR
         if: ${{ !inputs.dry_run }}
         uses: actions/github-script@v6
