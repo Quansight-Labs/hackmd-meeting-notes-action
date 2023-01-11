@@ -1,0 +1,13 @@
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  run:
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/reusable-workflow.yml@main
+    with:
+      template_path: meeting-notes/TEMPLATE.md
+      output_path: meeting-notes/%Y-%m-%d.md
+      hackmd_team: jaimergp-team-demo
+    secrets:
+      HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
