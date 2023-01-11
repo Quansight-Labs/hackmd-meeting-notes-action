@@ -97,6 +97,7 @@ jobs:
         run: |
           # Render template
           output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
+          export output_path
           mkdir -p "$(dirname "$output_path")"
           python3 > "$output_path" <<EOF
           from jinja2 import Template, DebugUndefined
@@ -170,7 +171,7 @@ jobs:
             await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              head: HEAD,
+              head: env.branch_name,
               base: "main",
               title: env.pr_title,
               body: `${{ inputs.pr_body }}`
