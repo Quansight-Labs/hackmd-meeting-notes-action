@@ -98,6 +98,7 @@ jobs:
           import sys
           import os
           from datetime import datetime
+          from pathlib import Path
           template = Template(Path("${{ inputs.template_path }}").read_text(), undefined=DebugUndefined)
           print(
             template.render(
