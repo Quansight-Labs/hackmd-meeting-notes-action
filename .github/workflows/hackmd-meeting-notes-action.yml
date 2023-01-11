@@ -55,7 +55,8 @@ on:
       iso_date:
         description: >-
           Date to use for `date` syntax interpolation in strings. Defaults to date when running.
-          MUST use ISO8601 format in UTC (`"%Y-%m-%dT%H:%M:%SZ"`), e.g. `2023-01-11T09:00:00Z`.
+          MUST be understood by `date --date`, but probably better to stick a known standard
+          (e.g. use ISO8601 format in UTC `2023-01-11T09:00:00Z`).
         required: false
         type: string
         default: ""
@@ -83,7 +84,7 @@ jobs:
       - name: Prepare date
         run: |
           if [[ "${{ inputs.iso_date }}" != "" ]]; then
-            echo "iso_date=${{ inputs.iso_date }}" >> $GITHUB_ENV
+            echo "iso_date=$(date -I -u --date ${{ inputs.iso_date }})" >> $GITHUB_ENV
           else
             echo "iso_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
           fi
@@ -115,7 +116,7 @@ jobs:
       - name: Render template
         run: |
           # Render template
-          output_path=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$iso_date" "+${{ inputs.output_path }}")
+          output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
           mkdir -p "$(dirname "$output_path")"
           python3 render.py -f "${{ inputs.template_path }}" > "$output_path"
           echo "output_path=$output_path" >> $GITHUB_ENV
@@ -125,7 +126,7 @@ jobs:
           git config user.name "github-actions[bot]"
 
           # Change to branch, create if it doesn't exist
-          branch_name=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$iso_date" "+${{ inputs.branch_name }}")
+          branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
           git checkout -b "${branch_name}" || git checkout "${branch_name}"
 
           git add "$output_path"
@@ -164,7 +165,7 @@ jobs:
           EOF
       - name: Prepare PR
         run: |
-          echo "pr_title=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
+          echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
       - name: Create PR
         if: ${{ !inputs.dry_run }}
         uses: actions/github-script@v6
