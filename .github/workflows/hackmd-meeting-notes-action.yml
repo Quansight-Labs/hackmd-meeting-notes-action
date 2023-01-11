@@ -12,6 +12,7 @@ on:
           Path (relative to the repository root) to the HackMD template. Supports Jinja.
           Environment variables available in the `env` dict.
           Date available in the `date` datetime object.
+          It MUST contain a one-line `# H1 header`.
         required: true
         type: string
       output_path:
@@ -93,6 +94,12 @@ jobs:
           else
             echo "iso_date=$(date -I -u)" >> $GITHUB_ENV
           fi
+      - name: Prepare branch
+        run: |
+          # Change to branch, create if it doesn't exist
+          branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
+          git checkout "${branch_name}" || git -b checkout "${branch_name}"
+          git pull origin "${branch_name}" || true  # might not exist upstream yet
       - name: Render template
         run: |
           # Render template
@@ -114,14 +121,12 @@ jobs:
           )
           EOF
           echo "output_path=$output_path" >> $GITHUB_ENV
+          note_title="$(awk '/^# .*/{print substr($0,3); exit}' "$output_path")"
+          echo "note_title=$note_title" >> $GITHUB_ENV
       - name: Commit changes
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-
-          # Change to branch, create if it doesn't exist
-          branch_name=$(date --date "$iso_date" "+${{ inputs.branch_name }}")
-          git checkout -b "${branch_name}" || git checkout "${branch_name}"
 
           git add "$output_path"
           git commit -m "Add $output_path"
@@ -132,7 +137,6 @@ jobs:
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
         run: |
-          note_title="$(awk '/^# .*/{print substr($0,3); exit}' "$output_path")"
           python3 <<EOF
           import os
           from pathlib import Path
@@ -140,7 +144,7 @@ jobs:
           url = "https://api.hackmd.io/v1/teams/${{ inputs.hackmd_team }}/notes"
           headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
           data = {
-            "title": "$note_title",
+            "title": os.environ["note_title"],
             "content": Path(os.environ["output_path"]).read_text(errors="replace"),
             "readPermission": "guest",
             "writePermission": "signed_in",
@@ -158,7 +162,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           git config push.default upstream
-          git push --set-upstream origin "${branch_name}"
+          git push origin "${branch_name}"
       - name: Prepare PR
         run: |
           echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
