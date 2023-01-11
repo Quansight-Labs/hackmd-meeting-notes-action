@@ -5,6 +5,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+# You need to enable 'Allow GitHub Actions to create and approve pull requests'
+# in your Actions Settings too
 
 jobs:
   run:
