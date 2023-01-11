@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   run:
-    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/hackmd-meeting-notes-action.yml@first-draft
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/hackmd-meeting-notes-action.yml@main
     with:
       template_path: meeting-notes/TEMPLATE.md
       output_path: meeting-notes/%Y-%m-%d.md
