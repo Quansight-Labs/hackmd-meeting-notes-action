@@ -159,7 +159,7 @@ jobs:
           data = r.json()
           print(data)
           with open(os.environ["GITHUB_ENV"], "a") as f:
-            print(f"hackmd_doc_url=data['publishLink']", file=f)
+            print(f"hackmd_doc_url={data['publishLink']}", file=f)
           EOF
       - name: (Force) Push
         if: ${{ !inputs.dry_run }}
