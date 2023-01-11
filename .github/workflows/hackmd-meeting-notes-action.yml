@@ -162,7 +162,7 @@ jobs:
         if: ${{ !inputs.dry_run }}
         run: |
           git config push.default upstream
-          git push origin "${branch_name}"
+          git push --set-upstream origin "${branch_name}"
       - name: Prepare PR
         run: |
           echo "pr_title=$(date --date "$iso_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
