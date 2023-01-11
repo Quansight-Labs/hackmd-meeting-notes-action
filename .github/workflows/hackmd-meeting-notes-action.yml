@@ -140,14 +140,16 @@ jobs:
           headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
           data = {
             "title": "$note_title",
-            "content": Path(os.environ["output_path"]).read_text(),
+            "content": Path(os.environ["output_path"]).read_text(errors="replace"),
             "readPermission": "guest",
-            "writePermission": "sign_in",
-            "commentPermission": "signed_in_users",
+            "writePermission": "signed_in",
           }
-          r = requests.post(url, data)
-          r.raise_for_status()
+          r = requests.post(url, json=data, headers=headers)
+          if not r.ok:
+            print(r.content)
+            r.raise_for_status()
           data = r.json()
+          print(data)
           with open(os.environ["GITHUB_ENV"], "a") as f:
             print(f"hackmd_doc_url=data['publishLink']", file=f)
           EOF
