@@ -88,24 +88,17 @@ jobs:
           else
             echo "iso_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
           fi
-      - name: Prepare render engine
+      - name: Render template
         run: |
-          cat > render.py <<EOF
+          # Render template
+          output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
+          mkdir -p "$(dirname "$output_path")"
+          python3 > "$output_path" <<EOF
           from jinja2 import Template, DebugUndefined
-          import argparse
+          import sys
           import os
           from datetime import datetime
-          from pathlib import Path
-
-          p = argparse.ArgumentParser()
-          p.add_argument("string", default="")
-          p.add_argument("-f", "--file")
-          args = p.parse_args()
-
-          template = Template(
-            args.string if args.string else Path(args.file).read_text(),
-            undefined=DebugUndefined,
-          )
+          template = Template(Path("${{ inputs.template_path }}").read_text(), undefined=DebugUndefined)
           print(
             template.render(
               env=os.environ,
@@ -113,12 +106,6 @@ jobs:
             )
           )
           EOF
-      - name: Render template
-        run: |
-          # Render template
-          output_path=$(date --date "$iso_date" "+${{ inputs.output_path }}")
-          mkdir -p "$(dirname "$output_path")"
-          python3 render.py -f "${{ inputs.template_path }}" > "$output_path"
           echo "output_path=$output_path" >> $GITHUB_ENV
       - name: Commit changes
         run: |
