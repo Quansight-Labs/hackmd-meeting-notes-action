@@ -43,11 +43,11 @@ jobs:
             return resp.data.body
       - name: Parse PR description
         run: |
-          cat <<'EOF' > "$TMP/pr-description"
+          cat <<'EOF' > "$RUNNER_TEMP/pr-description"
           ${{ steps.pr-description.outputs.result }}
           EOF
-          echo "hackmd_id="$(grep -E '^HACKMDID=' "$TMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
-          echo "doc_path="$(grep -E '^DOCPATH=' "$TMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+          echo "hackmd_id="$(grep -E '^HACKMDID=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+          echo "doc_path="$(grep -E '^DOCPATH=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
       - name: Sync from HackMD
         if: ${{ !inputs.dry_run }}
         env:
