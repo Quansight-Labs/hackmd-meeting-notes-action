@@ -187,14 +187,15 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: resp.data.number,
-              body: `<!-- DO NOT EDIT COMMENTS -->
-              <!--
-              HACKMDURL=${env.hackmd_doc_url}
-              HACKMDID=${env.hackmd_doc_id}
-              DOCPATH=${env.output_path}
-              -->
-              ${{ inputs.pr_body }}
-              `
+              body: `
+            <!--
+            DO NOT EDIT THIS BLOCK
+            HACKMDURL=${env.hackmd_doc_url}
+            HACKMDID=${env.hackmd_doc_id}
+            DOCPATH=${env.output_path}
+            -->
+            ${{ inputs.pr_body }}
+            `
             })
 
         env:
