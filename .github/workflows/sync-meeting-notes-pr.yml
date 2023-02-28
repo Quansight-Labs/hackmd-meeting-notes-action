@@ -73,8 +73,13 @@ jobs:
           EOF
       - name: Commit changes
         run: |
+          set -x
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git commit -am "Update $doc_path"
-          git pull --no-rebase
-          git push
+          if git diff --exit-code "$doc_path"; then
+            git commit -am "Update $doc_path"
+            git pull --no-rebase
+            git push
+          else
+            echo "No changes detected."
+          fi
