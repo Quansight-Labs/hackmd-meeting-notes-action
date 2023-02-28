@@ -71,7 +71,7 @@ jobs:
           print(data)
           Path(os.environ['doc_path']).write_text(data['content'])
           EOF
-      - name: Commit changes
+      - name: Commit changes (if any)
         run: |
           set -x
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
