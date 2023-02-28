@@ -1,0 +1,76 @@
+name: HackMD Send Meeting Notes Action
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: PR number being synced
+        required: true
+        type: string
+    secrets:
+      GITHUB_USER_TOKEN:
+        description: A token with sufficient permissions to commit and push to the target repository
+        required: false
+      HACKMD_TOKEN:
+        description: API token for HackMD.io
+        required: true
+
+jobs:
+  main:
+    name: Send notes to HackMD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      - name: Get PR description
+        id: pr-description
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            let env = process.env
+            const resp = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: inputs.pr_number,
+            });
+            return resp.data.body
+      - name: Parse PR description
+        run: |
+          cat <<'EOF' > "$TMP/pr-description"
+          ${{ steps.pr-description.outputs.result }}
+          EOF
+          echo "hackmd_id="$(grep -E '^HACKMDID=' "$TMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+          echo "doc_path="$(grep -E '^DOCPATH=' "$TMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+      - name: Sync from HackMD
+        if: ${{ !inputs.dry_run }}
+        env:
+          HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+        run: |
+          python3 <<EOF
+          import os
+          from pathlib import Path
+          import requests
+          url = f"https://api.hackmd.io/v1/notes/{os.environ['hackmd_id']}"
+          headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
+          r = requests.get(url, headers=headers)
+          if not r.ok:
+            print(r.content)
+            r.raise_for_status()
+          data = r.json()
+          print(data)
+          Path(os.environ['doc_path'].write_text(data['content'])
+          EOF
+      - name: Commit changes
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git commit -am "Update $doc_path"
+          git pull --no-rebase
+          git push

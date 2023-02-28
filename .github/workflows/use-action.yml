@@ -1,5 +1,8 @@
 on:
   workflow_dispatch:
+  pull_request:
+    types:
+      - labeled
 
 permissions:
   contents: write
@@ -8,12 +11,20 @@ permissions:
 # in your Actions Settings too
 
 jobs:
-  run:
-    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/hackmd-meeting-notes-action.yml@main
+  create:
+    if: github.event_name != 'pull_request'
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/create-meeting-notes-pr.yml@main
     with:
       template_path: meeting-notes/TEMPLATE.md
       output_path: meeting-notes/%Y-%m-%d.md
       hackmd_team: jaimergp-team-demo
       force_push: true
+    secrets:
+      HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+  sync:
+    if: github.event.label.name == 'sync-hackmd-notes'
+    uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/sync-meeting-notes-pr.yml@main
+    with:
+      pr_number: ${{ github.event.number }}
     secrets:
       HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
