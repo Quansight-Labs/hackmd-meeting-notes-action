@@ -1,4 +1,4 @@
-name: HackMD Receive Meeting Notes Action
+name: HackMD Create Meeting Notes Action
 
 permissions:
   contents: write

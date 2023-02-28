@@ -1,4 +1,4 @@
-name: HackMD Send Meeting Notes Action
+name: HackMD Sync Meeting Notes Action
 
 permissions:
   contents: write
@@ -38,7 +38,7 @@ jobs:
             const resp = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: inputs.pr_number,
+              pull_number: context.issue.number,
             });
             return resp.data.body
       - name: Parse PR description
