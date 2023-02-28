@@ -50,8 +50,8 @@ jobs:
           cat <<'EOF' > "$RUNNER_TEMP/pr-description"
           ${{ steps.pr-description.outputs.result }}
           EOF
-          echo "hackmd_id="$(grep -E '^HACKMDID=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
-          echo "doc_path="$(grep -E '^DOCPATH=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+          echo "hackmd_id="$(grep -E 'HACKMDID=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
+          echo "doc_path="$(grep -E 'DOCPATH=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
       - name: Sync from HackMD
         if: ${{ !inputs.dry_run }}
         env:
@@ -61,8 +61,8 @@ jobs:
           import os
           from pathlib import Path
           import requests
-          url = f"https://api.hackmd.io/v1/notes/{os.environ['hackmd_id']}"
-          headers = {"Authorization": f"Bearer {os.environ['HACKMD_TOKEN']}"}
+          url = "https://api.hackmd.io/v1/notes/$hackmd_id"
+          headers = {"Authorization": f"Bearer $HACKMD_TOKEN"}
           r = requests.get(url, headers=headers)
           if not r.ok:
             print(r.content)
