@@ -1,5 +1,13 @@
+name: Create PR for meeting notes today
+
 on:
   workflow_dispatch:
+    inputs:
+      date:
+        description: Date of the meeting notes. MUST be understood by `date --date`.
+        required: false
+        default: "now"
+        type: string
   pull_request:
     types:
       - labeled
