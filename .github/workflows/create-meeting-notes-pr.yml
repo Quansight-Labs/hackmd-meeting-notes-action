@@ -200,7 +200,7 @@ jobs:
             HACKMDID=${env.hackmd_doc_id}
             DOCPATH=${env.output_path}
             -->
-            ${env.pr_body}
+            ${{ env.pr_body }}
             `
             })
 
