@@ -163,17 +163,23 @@ jobs:
           else
             git push origin "${branch_name}"
           fi
-      - name: Prepare PR
+      - name: Prepare PR contents
         run: |
           echo "pr_title=$(date --date "$chosen_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
+          # We need to escape the backticks in markdown so JS interpolation does not choke
+          cat <<'EOF' > "$RUNNER_TEMP/pr-body"
+          ${{ inputs.pr_body }}
+          EOF
+          EOV=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "pr_body<<$EOV" >> $GITHUB_ENV
+          sed 's/`/\\`/g' "$RUNNER_TEMP/pr-body" >> $GITHUB_ENV
+          echo "$EOV" >> $GITHUB_ENV
       - name: Create PR
         if: ${{ !inputs.dry_run }}
         uses: actions/github-script@v6
         with:
           script: |
             let env = process.env
-            console.log(context)
-            return
             const resp = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -181,6 +187,8 @@ jobs:
               base: "main",
               title: env.pr_title,
             });
+            let pr_body = 
+
             await github.rest.pulls.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -192,7 +200,7 @@ jobs:
             HACKMDID=${env.hackmd_doc_id}
             DOCPATH=${env.output_path}
             -->
-            ${context.payload.client_payload?.data?.pr_body || context.payload.inputs?.pr_body}
+            ${env.pr_body}
             `
             })
 
