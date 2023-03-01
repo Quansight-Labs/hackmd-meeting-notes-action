@@ -46,13 +46,9 @@ on:
         default: |
           New meeting notes available at ${env.hackmd_doc_url}
 
-          Once done with the meeting, sync the note back to the repository:
-          1. Open the Versions panel
-          2. Press **Push to Github**. You might need to grant access to the HackMD app.
-          3. Select repo: _${context.repo.owner}/${context.repo.repo}_
-          4. Select branch: _${env.branch_name}_
-          5. Select file: _${env.output_path}_
-          6. Press **Push**!
+          Once done with the meeting, sync the note back to the repository using the `sync-meeting-notes-pr` workflow.
+          We recommend adding a job that is triggered by adding a label or posting a comment. 
+          Labels are usually better because the permissions are usually restricted to maintainers.
       date:
         description: >-
           Date to use for `date` syntax interpolation in strings. Defaults to date when running.
