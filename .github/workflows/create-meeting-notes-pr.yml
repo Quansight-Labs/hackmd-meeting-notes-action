@@ -172,6 +172,8 @@ jobs:
         with:
           script: |
             let env = process.env
+            console.log(context)
+            return
             const resp = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
