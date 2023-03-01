@@ -21,10 +21,12 @@ on:
 
 jobs:
   main:
-    name: Send notes to HackMD
+    name: Sync notes from HackMD
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
@@ -80,8 +82,7 @@ jobs:
           if ! git diff --exit-code "$doc_path"; then
             git add "$doc_path"
             git commit -m "Update $doc_path"
-            git pull --no-rebase
-            git push
+            git push origin ${{ github.head_ref || github.ref_name }}
           else
             echo "No changes detected."
           fi
