@@ -190,7 +190,7 @@ jobs:
             HACKMDID=${env.hackmd_doc_id}
             DOCPATH=${env.output_path}
             -->
-            ${context.payload.inputs.pr_body}
+            ${context.payload.client_payload?.data?.pr_body || context.payload.inputs?.pr_body}
             `
             })
 
