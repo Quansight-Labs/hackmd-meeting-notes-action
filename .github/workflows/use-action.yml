@@ -30,7 +30,7 @@ jobs:
       pr_body: |
           New meeting notes available at ${env.hackmd_doc_url}.
 
-          Once done with the meeting, sync the note back to the repository by badding the `sync-hackmd-notes` label.
+          Once done with the meeting, sync the note back to the repository by adding the `sync-hackmd-notes` label.
     secrets:
       HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
   sync:
