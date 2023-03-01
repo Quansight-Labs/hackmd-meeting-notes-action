@@ -190,8 +190,7 @@ jobs:
             HACKMDID=${env.hackmd_doc_id}
             DOCPATH=${env.output_path}
             -->
-            ${{ inputs.pr_body }}
-            `
+            ` + inputs.pr_body
             })
 
         env:
