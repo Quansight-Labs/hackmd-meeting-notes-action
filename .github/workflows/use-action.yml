@@ -1,4 +1,4 @@
-name: Create PR for meeting notes today
+name: Create PR for meeting notes
 
 on:
   workflow_dispatch:
