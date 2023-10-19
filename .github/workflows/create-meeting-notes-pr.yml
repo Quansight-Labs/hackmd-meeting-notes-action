@@ -90,7 +90,8 @@ jobs:
           python3 -m pip install jinja2 requests
       - name: Prepare date
         run: |
-          echo "chosen_date=$(date -I -u --date '${{ inputs.date }}')" >> $GITHUB_ENV
+          chosen_date="$(date -I -u --date "${{ inputs.date }}")"
+          echo "chosen_date=${chosen_date}" >> $GITHUB_ENV
       - name: Prepare branch
         run: |
           # Change to branch, create if it doesn't exist
