@@ -94,9 +94,13 @@ jobs:
           echo "chosen_date=${chosen_date}" >> $GITHUB_ENV
       - name: Prepare branch
         run: |
-          # Change to branch, create if it doesn't exist
+          # Create new branch
           branch_name=$(date --date "$chosen_date" "+${{ inputs.branch_name }}")
-          git checkout "${branch_name}" || git checkout -b "${branch_name}"
+          if [[ "${{ inputs.force_push }}" == "true" ]]; then
+            git checkout -b "${branch_name}" || git checkout "${branch_name}"
+          else
+            git checkout -b "${branch_name}"
+          fi
           echo "branch_name=$branch_name" >> $GITHUB_ENV
       - name: Render template
         run: |
