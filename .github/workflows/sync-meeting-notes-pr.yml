@@ -64,7 +64,7 @@ jobs:
           import os
           from pathlib import Path
           import requests
-          url = "https://api.hackmd.io/v1/notes/$hackmd_id"
+          url = f"https://api.hackmd.io/v1/notes/{os.environ['hackmd_id'].strip()}"
           headers = {"Authorization": f"Bearer $HACKMD_TOKEN"}
           r = requests.get(url, headers=headers)
           if not r.ok:
@@ -72,7 +72,7 @@ jobs:
             r.raise_for_status()
           data = r.json()
           print(data)
-          Path(os.environ['doc_path']).write_text(data['content'])
+          Path(os.environ['doc_path'].strip()).write_text(data['content'])
           EOF
       - name: Commit changes (if any)
         run: |
