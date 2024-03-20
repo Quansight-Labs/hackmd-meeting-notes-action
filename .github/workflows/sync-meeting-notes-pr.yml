@@ -50,11 +50,19 @@ jobs:
             return resp.data.body
       - name: Parse PR description
         run: |
-          cat <<'EOF' > "$RUNNER_TEMP/pr-description"
+          python3 <<EOF
+          import os
+          from pathlib import Path
+          result = """
           ${{ steps.pr-description.outputs.result }}
+          """.strip()
+          for line in result.splitlines():
+            line = line.strip()
+            if line.startswith(("HACKMDID=", "DOCPATH=")):
+              key, value = line.split("=", 1)
+              with open(os.environ['GITHUB_ENV'], 'a') as f:
+                f.write(f"{key}={value}\n")
           EOF
-          echo "hackmd_id=$(grep -E 'HACKMDID=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
-          echo "doc_path=$(grep -E 'DOCPATH=' "$RUNNER_TEMP/pr-description" | cut -d= -f2-)" >> $GITHUB_ENV
       - name: Sync from HackMD
         if: ${{ !inputs.dry_run }}
         env:
@@ -64,7 +72,7 @@ jobs:
           import os
           from pathlib import Path
           import requests
-          url = f"https://api.hackmd.io/v1/notes/{os.environ['hackmd_id'].strip()}"
+          url = f"https://api.hackmd.io/v1/notes/{os.environ['HACKMDID']}"
           headers = {"Authorization": f"Bearer $HACKMD_TOKEN"}
           r = requests.get(url, headers=headers)
           if not r.ok:
@@ -72,7 +80,7 @@ jobs:
             r.raise_for_status()
           data = r.json()
           print(data)
-          Path(os.environ['doc_path'].strip()).write_text(data['content'])
+          Path(os.environ['DOCPATH']).write_text(data['content'])
           EOF
       - name: Commit changes (if any)
         run: |
@@ -81,9 +89,9 @@ jobs:
           git config user.name "github-actions[bot]"
           
           git status
-          if ! git diff --exit-code "$doc_path"; then
-            git add "$doc_path"
-            git commit -m "Update $doc_path"
+          if ! git diff --exit-code "$DOCPATH"; then
+            git add "$DOCPATH"
+            git commit -m "Update $DOCPATH"
             git push origin ${{ github.head_ref || github.ref_name }}
           else
             echo "No changes detected."
