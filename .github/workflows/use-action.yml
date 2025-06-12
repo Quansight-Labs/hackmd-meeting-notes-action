@@ -39,5 +39,6 @@ jobs:
     uses: jaimergp/hackmd-meeting-notes-action/.github/workflows/sync-meeting-notes-pr.yml@main
     with:
       pr_number: ${{ github.event.number }}
+      hackmd_team: jaimergp-team-demo
     secrets:
       HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
