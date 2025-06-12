@@ -11,6 +11,10 @@ on:
         description: PR number being synced
         required: true
         type: string
+      hackmd_team:
+        description: HackMD team identifier
+        required: true
+        type: string
     secrets:
       GITHUB_USER_TOKEN:
         description: A token with sufficient permissions to commit and push to the target repository
@@ -67,12 +71,13 @@ jobs:
         if: ${{ !inputs.dry_run }}
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+          HACKMD_TEAM: ${{ inputs.hackmd_team }}
         run: |
           python3 <<EOF
           import os
           from pathlib import Path
           import requests
-          url = f"https://api.hackmd.io/v1/notes/{os.environ['HACKMDID']}"
+          url = f"https://api.hackmd.io/v1/teams/{os.environ['HACKMD_TEAM']}/notes/{os.environ['HACKMDID']}"
           headers = {"Authorization": f"Bearer $HACKMD_TOKEN"}
           r = requests.get(url, headers=headers)
           if not r.ok:
