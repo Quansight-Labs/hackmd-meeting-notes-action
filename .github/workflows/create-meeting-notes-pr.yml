@@ -137,8 +137,8 @@ jobs:
         if: ${{ !(inputs.dry_run || true) }}
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+        shell: python
         run: |
-          python3 <<EOF
           import os
           from pathlib import Path
           import requests
@@ -159,7 +159,6 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as f:
             print(f"hackmd_doc_id={data['note']['id']}", file=f)
             print(f"hackmd_doc_url={data['note']['publishLink']}", file=f)
-          EOF
       - name: (Force) Push
         if: ${{ !(inputs.dry_run || true) }}
         run: |

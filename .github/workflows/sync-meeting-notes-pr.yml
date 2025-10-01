@@ -58,27 +58,26 @@ jobs:
             });
             return resp.data.body
       - name: Parse PR description
+        shell: python
+        env:
+          PR_DESCRIPTION: ${{ steps.pr-description.outputs.result }}
         run: |
-          python3 <<EOF
           import os
           from pathlib import Path
-          result = """
-          ${{ steps.pr-description.outputs.result }}
-          """.strip()
+          result = os.environ["PR_DESCRIPTION"].strip()
           for line in result.splitlines():
             line = line.strip()
             if line.startswith(("HACKMDID=", "DOCPATH=")):
               key, value = line.split("=", 1)
               with open(os.environ['GITHUB_ENV'], 'a') as f:
                 f.write(f"{key}={value}\n")
-          EOF
       - name: Sync from HackMD
         if: ${{ !(inputs.dry_run || true) }}
+        shell: python
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
           HACKMD_TEAM: ${{ inputs.hackmd_team }}
         run: |
-          python3 <<EOF
           import os
           from pathlib import Path
           import requests
@@ -91,7 +90,6 @@ jobs:
           data = r.json()
           print(data)
           Path(os.environ['DOCPATH']).write_text(data['content'])
-          EOF
       - name: Commit changes (if any)
         if: ${{ !(inputs.dry_run || true) }}
         run: |
