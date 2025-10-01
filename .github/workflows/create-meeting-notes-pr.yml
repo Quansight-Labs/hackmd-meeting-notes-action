@@ -5,6 +5,7 @@ permissions:
   pull-requests: write
 
 on:
+  pull_request:
   workflow_call:
     inputs:
       template_path:
@@ -80,22 +81,22 @@ jobs:
     name: Create meeting notes PR
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
-          python-version: "3.9"
+          python-version: "3.12"
       - name: Set up dependencies
         run: |
           python3 -V
           python3 -m pip install jinja2 requests
       - name: Prepare date
         run: |
-          chosen_date="$(date -I -u --date "${{ inputs.date }}")"
+          chosen_date="$(date -I -u --date "${{ inputs.date || 'now' }}")"
           echo "chosen_date=${chosen_date}" >> $GITHUB_ENV
       - name: Prepare branch
         run: |
           # Create new branch
-          branch_name=$(date --date "$chosen_date" "+${{ inputs.branch_name }}")
+          branch_name=$(date --date "$chosen_date" "+${{ inputs.branch_name || '%Y-%m-%d-meeting-notes' }}")
           if [[ "${{ inputs.force_push }}" == "true" ]]; then
             git checkout -b "${branch_name}" || git checkout "${branch_name}"
           else
@@ -105,7 +106,7 @@ jobs:
       - name: Render template
         run: |
           # Render template
-          output_path=$(date --date "$chosen_date" "+${{ inputs.output_path }}")
+          output_path=$(date --date "$chosen_date" "+${{ inputs.output_path ||  'meeting-notes/%Y-%m-%d.md' }}")
           export output_path
           mkdir -p "$(dirname "$output_path")"
           python3 > "$output_path" <<EOF
@@ -114,7 +115,7 @@ jobs:
           import os
           from datetime import datetime
           from pathlib import Path
-          template = Template(Path("${{ inputs.template_path }}").read_text(), undefined=DebugUndefined)
+          template = Template(Path("${{ inputs.template_path || 'meeting-notes/TEMPLATE.md' }}").read_text(), undefined=DebugUndefined)
           print(
             template.render(
               env=os.environ,
@@ -133,11 +134,11 @@ jobs:
           git add "$output_path"
           git commit -m "Add $output_path"
       - name: Sync with HackMD
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !(inputs.dry_run || true) }}
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
+        shell: python
         run: |
-          python3 <<EOF
           import os
           from pathlib import Path
           import requests
@@ -158,9 +159,8 @@ jobs:
           with open(os.environ["GITHUB_ENV"], "a") as f:
             print(f"hackmd_doc_id={data['note']['id']}", file=f)
             print(f"hackmd_doc_url={data['note']['publishLink']}", file=f)
-          EOF
       - name: (Force) Push
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !(inputs.dry_run || true) }}
         run: |
           git config push.default upstream
           if [[ "${{ inputs.force_push }}" == "true" ]]; then
@@ -170,18 +170,18 @@ jobs:
           fi
       - name: Prepare PR contents
         run: |
-          echo "pr_title=$(date --date "$chosen_date" "+${{ inputs.pr_title }}")" >> $GITHUB_ENV
+          echo "pr_title=$(date --date "$chosen_date" "+${{ inputs.pr_title || 'Meeting notes for %Y-%m-%d' }}")" >> $GITHUB_ENV
           # We need to escape the backticks in markdown so JS interpolation does not choke
           cat <<'EOF' > "$RUNNER_TEMP/pr-body"
-          ${{ inputs.pr_body }}
+          ${{ inputs.pr_body || 'PR BODY TEXT EXAMPLE' }}
           EOF
           EOV=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "pr_body<<$EOV" >> $GITHUB_ENV
           sed 's/`/\\`/g' "$RUNNER_TEMP/pr-body" >> $GITHUB_ENV
           echo "$EOV" >> $GITHUB_ENV
       - name: Create PR
-        if: ${{ !inputs.dry_run }}
-        uses: actions/github-script@v6
+        if: ${{ !(inputs.dry_run || true) }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             let env = process.env
@@ -205,7 +205,7 @@ jobs:
             HACKMDID=${env.hackmd_doc_id}
             DOCPATH=${env.output_path}
             -->
-            ${{ env.pr_body }}
+            ${{ env.pr_body || 'PR BODY TEXT EXAMPLE' }}
             `
             })
 

@@ -5,6 +5,7 @@ permissions:
   pull-requests: write
 
 on:
+  pull_request:
   workflow_call:
     inputs:
       pr_number:
@@ -15,6 +16,10 @@ on:
         description: HackMD team identifier
         required: true
         type: string
+      dry_run:
+        description: If enabled, do not commit changes
+        required: false
+        type: boolean
     secrets:
       GITHUB_USER_TOKEN:
         description: A token with sufficient permissions to commit and push to the target repository
@@ -28,20 +33,20 @@ jobs:
     name: Sync notes from HackMD
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c # v6.0.0
         with:
-          python-version: "3.9"
+          python-version: "3.12"
       - name: Set up dependencies
         run: |
           python3 -V
           python3 -m pip install requests
       - name: Get PR description
         id: pr-description
-        uses: actions/github-script@v6
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           result-encoding: string
           script: |
@@ -53,28 +58,33 @@ jobs:
             });
             return resp.data.body
       - name: Parse PR description
+        shell: python
+        env:
+          PR_DESCRIPTION: ${{ steps.pr-description.outputs.result }}
         run: |
-          python3 <<EOF
-          import os
+          import os, sys
           from pathlib import Path
-          result = """
-          ${{ steps.pr-description.outputs.result }}
-          """.strip()
+          result = os.environ["PR_DESCRIPTION"].strip()
+          found = 0
           for line in result.splitlines():
             line = line.strip()
             if line.startswith(("HACKMDID=", "DOCPATH=")):
               key, value = line.split("=", 1)
-              with open(os.environ['GITHUB_ENV'], 'a') as f:
+              with open(os.environ["GITHUB_ENV"], "a") as f:
                 f.write(f"{key}={value}\n")
-          EOF
+              found += 1
+              print("Found key", key)
+          if found != 2:
+            print("PR description parsing error! Must contain HACKMDID=value and DOCPATH=value!")
+            sys.exit(1)
       - name: Sync from HackMD
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !(inputs.dry_run || true) }}
+        shell: python
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
           HACKMD_TEAM: ${{ inputs.hackmd_team }}
         run: |
-          python3 <<EOF
-          import os
+          import os, sys
           from pathlib import Path
           import requests
           url = f"https://api.hackmd.io/v1/teams/{os.environ['HACKMD_TEAM']}/notes/{os.environ['HACKMDID']}"
@@ -86,8 +96,9 @@ jobs:
           data = r.json()
           print(data)
           Path(os.environ['DOCPATH']).write_text(data['content'])
-          EOF
+          sys.exit(0)
       - name: Commit changes (if any)
+        if: ${{ !(inputs.dry_run || true) }}
         run: |
           set -x
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
