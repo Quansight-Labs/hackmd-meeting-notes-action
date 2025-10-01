@@ -5,6 +5,7 @@ permissions:
   pull-requests: write
 
 on:
+  pull_request:
   workflow_call:
     inputs:
       pr_number:
@@ -15,6 +16,10 @@ on:
         description: HackMD team identifier
         required: true
         type: string
+      dry_run:
+        description: If enabled, do not commit changes
+        required: false
+        type: boolean
     secrets:
       GITHUB_USER_TOKEN:
         description: A token with sufficient permissions to commit and push to the target repository
@@ -68,7 +73,7 @@ jobs:
                 f.write(f"{key}={value}\n")
           EOF
       - name: Sync from HackMD
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !(inputs.dry_run || true) }}
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
           HACKMD_TEAM: ${{ inputs.hackmd_team }}
@@ -88,6 +93,7 @@ jobs:
           Path(os.environ['DOCPATH']).write_text(data['content'])
           EOF
       - name: Commit changes (if any)
+        if: ${{ !(inputs.dry_run || true) }}
         run: |
           set -x
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
