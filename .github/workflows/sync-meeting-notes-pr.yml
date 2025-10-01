@@ -62,15 +62,21 @@ jobs:
         env:
           PR_DESCRIPTION: ${{ steps.pr-description.outputs.result }}
         run: |
-          import os
+          import os, sys
           from pathlib import Path
           result = os.environ["PR_DESCRIPTION"].strip()
+          found = 0
           for line in result.splitlines():
             line = line.strip()
             if line.startswith(("HACKMDID=", "DOCPATH=")):
               key, value = line.split("=", 1)
-              with open(os.environ['GITHUB_ENV'], 'a') as f:
+              with open(os.environ["GITHUB_ENV"], "a") as f:
                 f.write(f"{key}={value}\n")
+              found += 1
+              print("Found key", key)
+          if found != 2:
+            print("PR description parsing error! Must contain HACKMDID=value and DOCPATH=value!")
+            sys.exit(1)
       - name: Sync from HackMD
         if: ${{ !(inputs.dry_run || true) }}
         shell: python
@@ -78,7 +84,7 @@ jobs:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
           HACKMD_TEAM: ${{ inputs.hackmd_team }}
         run: |
-          import os
+          import os, sys
           from pathlib import Path
           import requests
           url = f"https://api.hackmd.io/v1/teams/{os.environ['HACKMD_TEAM']}/notes/{os.environ['HACKMDID']}"
@@ -90,6 +96,7 @@ jobs:
           data = r.json()
           print(data)
           Path(os.environ['DOCPATH']).write_text(data['content'])
+          sys.exit(0)
       - name: Commit changes (if any)
         if: ${{ !(inputs.dry_run || true) }}
         run: |
