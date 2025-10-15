@@ -5,7 +5,6 @@ permissions:
   pull-requests: write
 
 on:
-  pull_request:
   workflow_call:
     inputs:
       pr_number:
@@ -78,7 +77,7 @@ jobs:
             print("PR description parsing error! Must contain HACKMDID=value and DOCPATH=value!")
             sys.exit(1)
       - name: Sync from HackMD
-        if: ${{ !(inputs.dry_run || true) }}
+        if: ${{ !inputs.dry_run }}
         shell: python
         env:
           HACKMD_TOKEN: ${{ secrets.HACKMD_TOKEN }}
@@ -98,7 +97,7 @@ jobs:
           Path(os.environ['DOCPATH']).write_text(data['content'])
           sys.exit(0)
       - name: Commit changes (if any)
-        if: ${{ !(inputs.dry_run || true) }}
+        if: ${{ !inputs.dry_run }}
         run: |
           set -x
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
